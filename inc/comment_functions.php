@@ -293,12 +293,18 @@ function my_bulk_action_admin_notice() {
 // Basis comes from Christopher Davis at https://www.pmg.com/blog/adding-extra-fields-to-wordpress-comments/?cn-reloaded=1
 add_action('add_meta_boxes_comment', 'grassroots_comment_type_add_meta_box');
 function grassroots_comment_type_add_meta_box() {
-    add_meta_box('grassroots-comment-type-id', __('Comment type'), 'grassroots_comment_type_meta_box_cb', 'comment', 'normal', 'high');
+
+    $comment = get_comment( $comment_ID);
+    $comment_type = $comment->comment_type;
+    $valid_values = array('synthesis', 'review', 'general_comment', 'specific_comment', 'message', 'link');
+    if( in_array( $comment_type, $valid_values ) ) {
+        add_meta_box('grassroots-comment-type-id', __('Comment type'), 'grassroots_comment_type_meta_box_cb', 'comment', 'normal', 'high');
+    }
 }
 
 // This function writes the HTML for the actual comment box.
 function grassroots_comment_type_meta_box_cb($comment) {
-    $comment_type = get_comment_meta($comment->comment_ID, 'comment_type', true);
+    // $comment_type = get_comment_meta($comment->comment_ID, 'comment_type', true);
     // wp_nonce_field('grassroots_type_update', 'grassroots_type_update', false);
     
     $comment = get_comment( $comment_ID);
@@ -309,7 +315,6 @@ function grassroots_comment_type_meta_box_cb($comment) {
     $select .= '<select name="comment_ctype" id="comment_ctype">';
     // $select .= '<option value="">Comment type</option>';
     
-    // $select .= '<option value="synthesis"';
     if ( $comment_type == 'synthesis')
         $select .= '<option value="synthesis" selected="selected">Synthesis</option>';
     else
