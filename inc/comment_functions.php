@@ -107,7 +107,7 @@ function comments_type( $count ) {
 
     if ( ! is_admin() ) {
     	global $id;
-    	if (TRUE) {
+    	if (FALSE) {
             $count['synthesis']        = 1;
             $count['review']           = 1;
             $count['general_comment']  = 1;
@@ -115,14 +115,33 @@ function comments_type( $count ) {
             $count['message']          = 1;
             $count['link']             = 1;
     	}
-    	if (FALSE) {
-            $comments_by_type = separate_comments( get_comments( 'status=approve&post_id=' . $id ) );        
-            $count['synthesis']        = sizeof($comments_by_type['synthesis']);
-            $count['review']           = sizeof($comments_by_type['review']);
-            $count['general_comment']  = sizeof($comments_by_type['general_comment']);
-            $count['specific_comment'] = sizeof($comments_by_type['specific_comment']);
-            $count['message']          = sizeof($comments_by_type['message']);
-            $count['link']             = sizeof($comments_by_type['link']);
+    	if (TRUE) {
+            $comments = get_comments( 'status=approve&post_id=' . $id );
+            $comments_by_type = separate_comments( $comments );
+            if(isset($comments_by_type['synthesis']))
+                $count['synthesis']        = count($comments_by_type['synthesis']);
+            else
+                $count['synthesis'] = 0;
+            if(isset($comments_by_type['review']))
+                $count['review']           = count($comments_by_type['review']);
+            else
+                $count['review'] = 0;
+            if(isset($comments_by_type['general_comment']))
+                $count['general_comment']  = count($comments_by_type['general_comment']);
+            else
+                $count['general_comment'] = 0;
+            if(isset($comments_by_type['specific_comment']))
+                $count['specific_comment'] = count($comments_by_type['specific_comment']);
+            else
+                $count['specific_comment'] = 0;
+            if(isset($comments_by_type['message']))
+                $count['message']          = count($comments_by_type['message']);
+            else
+                $count['message'] = 0;
+            if(isset($comments_by_type['link']))
+                $count['link']             = count($comments_by_type['link']);
+            else
+                $count['link'] = 0;
         }
 	    // echo('Dump of count at the end of function comments_type.');
  	    // var_dump($count);
@@ -137,12 +156,12 @@ function comments_type( $count ) {
 // The basis of the following three functions to change the registration type in bulk comes from http://wpengineer.com/2803/create-your-own-bulk-actions/
 add_filter('bulk_actions-edit-comments', 'register_my_bulk_actions');
 function register_my_bulk_actions($bulk_actions) {
-    $bulk_actions['Dummynull'] = __( '== Change comment type ==', 'my-child-theme');
-    $bulk_actions['Synthesis'] = __( 'Change to Synthesis',       'my-child-theme');
-    $bulk_actions['Review']    = __( 'Change to Review',          'my-child-theme');
-    $bulk_actions['General']   = __( 'Change to General Comment', 'my-child-theme');
-    $bulk_actions['Specific']  = __( 'Change to Specific Comment','my-child-theme');
-    $bulk_actions['Message']   = __( 'Change to Message',         'my-child-theme');
+    $bulk_actions['Dummynull'] = __( '== Change comment type ==',   'my-child-theme');
+    $bulk_actions['Synthesis'] = __( 'Change to Synthesis',         'my-child-theme');
+    $bulk_actions['Review']    = __( 'Change to Review',            'my-child-theme');
+    $bulk_actions['General']   = __( 'Change to General Comment',   'my-child-theme');
+    $bulk_actions['Specific']  = __( 'Change to Specific Comment',  'my-child-theme');
+    $bulk_actions['Message']   = __( 'Change to Message to editor', 'my-child-theme');
     // $bulk_actions['Link']      = __( 'Change to Link',            'my-child-theme');
     return $bulk_actions;
 }
@@ -277,33 +296,56 @@ function grassroots_comment_type_add_meta_box() {
     add_meta_box('grassroots-comment-type-id', __('Comment type'), 'grassroots_comment_type_meta_box_cb', 'comment', 'normal', 'high');
 }
 
+// This function writes the HTML for the actual comment box.
 function grassroots_comment_type_meta_box_cb($comment) {
     $comment_type = get_comment_meta($comment->comment_ID, 'comment_type', true);
     // wp_nonce_field('grassroots_type_update', 'grassroots_type_update', false);
-    ?>
-    <p>
-        <label for="typeselect">Comment type:</label> 
-        <select name="comment_ctype" id="comment_ctype">
-        <option value="">Comment type</option>'
-        <option value="synthesis">Synthesis</option>'
-        <option value="review">Review</option>'
-        <option value="general_comment">General comment</option>'
-        <option value="specific_comment">Specific comment</option>'
-        <option value="message">Unpublished message</option>'
-        <option value="link">Related URL</option>'
-        </select>
-    </p>
-    <?php
+    
+    $comment = get_comment( $comment_ID);
+    $comment_type = $comment->comment_type;
+
+    $select  = '<p>';
+    $select .= '<label for="typeselect">Comment type:</label>';
+    $select .= '<select name="comment_ctype" id="comment_ctype">';
+    // $select .= '<option value="">Comment type</option>';
+    
+    // $select .= '<option value="synthesis"';
+    if ( $comment_type == 'synthesis')
+        $select .= '<option value="synthesis" selected="selected">Synthesis</option>';
+    else
+        $select .= '<option value="synthesis">Synthesis</option>';
+
+    if ( $comment_type == 'review')
+        $select .= '<option value="review" selected="selected">Review</option>';
+    else
+        $select .= '<option value="review">Review</option>';
+    
+    if ( $comment_type == 'general_comment')
+        $select .= '<option value="general_comment" selected="selected">General comment</option>';
+    else        
+        $select .= '<option value="general_comment">General comment</option>';
+    
+    if ( $comment_type == 'specific_comment')
+        $select .= '<option value="specific_comment" selected="selected">Specific comment</option>';
+    else
+        $select .= '<option value="specific_comment">Specific comment</option>';
+    
+    if ( $comment_type == 'message')
+        $select .= '<option value="message" selected="selected">Unpublished message to editor</option>';
+    else
+        $select .= '<option value="message">Unpublished message to editor</option>';
+    
+    $select .= '</select>';
+    $select .= '</p>';
+
+    echo($select);
+    // <option value="link">Related URL</option>'
 }
 
-
+// This function saves the result of changing the comment type on the edit page.
+// The function grassroots_save_comment_type_form_field is also used to store the results
+// after submitting a comment and is defined above.
 add_action('edit_comment', 'grassroots_save_comment_type_form_field');
-// function grassroots_comment_tut_edit_comment($comment_id)
-// {
-//     if ( !isset($_POST['comment_ctype']) || !wp_verify_nonce($_POST['grassroots_type_update'], 'grassroots_type_update') ) 
-//         return;
-//     if ( isset($_POST['comment_ctype']) )
-//         update_comment_meta($comment_id, 'comment_type', esc_attr($_POST['comment_ctype']));
-// }
+
 
 ?>
